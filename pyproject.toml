@@ -10,6 +10,7 @@ classifiers = [
 ]
 dependencies = [
     "llm>=0.22",
+    "azure-identity>=1.15.0",
 ]
 
 [project.urls]
@@ -20,3 +21,10 @@ CI = "https://github.com/fabge/llm-azure/actions"
 
 [project.entry-points.llm]
 azure = "llm_azure"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["llm_azure"]
