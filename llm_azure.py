@@ -12,6 +12,20 @@ from llm.utils import logging_client
 from openai import AsyncAzureOpenAI, AzureOpenAI
 
 
+def simplify_usage_dict(d):
+    # Recursively remove keys with value 0 and empty dictionaries
+    def remove_empty_and_zero(obj):
+        if isinstance(obj, dict):
+            cleaned = {
+                k: remove_empty_and_zero(v)
+                for k, v in obj.items()
+                if v != 0 and v != {}
+            }
+            return {k: v for k, v in cleaned.items() if v is not None and v != {}}
+        return obj
+
+    return remove_empty_and_zero(d) or {}
+
 def validate_model_config(model):
     """Validate Azure model configuration for authentication method.
     
@@ -223,10 +237,19 @@ class AzureShared(_Shared):
             kwargs["max_tokens"] = self.default_max_tokens
         if json_object:
             kwargs["response_format"] = {"type": "json_object"}
-        # currently not supported for azure openai https://github.com/openai/openai-python/issues/1469
-        # if stream:
-        #     kwargs["stream_options"] = {"include_usage": True}
+        if stream:
+            kwargs["stream_options"] = {"include_usage": True}
         return kwargs
+    
+    def set_usage(self, response, usage):
+        if not usage:
+            return
+        input_tokens = usage.pop("prompt_tokens")
+        output_tokens = usage.pop("completion_tokens")
+        usage.pop("total_tokens")
+        response.set_usage(
+            input=input_tokens, output=output_tokens, details=simplify_usage_dict(usage)
+        )
 
 
 class AzureChat(AzureShared, Chat):
